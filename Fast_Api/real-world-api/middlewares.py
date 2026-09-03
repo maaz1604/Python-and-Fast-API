@@ -1,0 +1,27 @@
+from fastapi import FastAPI,Depends,Request
+import time
+
+app = FastAPI()
+
+@app.middleware('http')
+async def log_middleware(request:Request,call_next):
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    process_time = time.time() - start_time
+    
+    print(f'Path:{request.url.path} and time:{process_time}')
+    
+    return response
+
+# @app.middleware('http')
+# async def my_middleware(request:Request,call_next):
+#     print('Request recieved')
+    
+#     response = await call_next(request)
+    
+#     print('Response sent')
+    
+#     return response
+
