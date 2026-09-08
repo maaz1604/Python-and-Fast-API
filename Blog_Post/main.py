@@ -3,6 +3,7 @@ from database import engine,SessionLocal
 from sqlalchemy.orm import Session
 import models,schemas
 from typing import Annotated
+from auth import create_token,verify_token
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -23,9 +24,17 @@ def home():
         "message":"Blog Api started."
     }
     
-# blog route
+#login api
+@app.post('/login')
+def login():
+    return{
+        'access_token':create_token({'user':'admin'}),
+        'token_type':'bearer'
+    }
+
+# create blog route (protected)
 @app.post('/blogs',response_model=schemas.BlogResponse)
-def create_blog(blog:schemas.BlogCreate,db:Annotated[Session,Depends(get_db)]):
+def create_blog(blog:schemas.BlogCreate,db:Annotated[Session,Depends(get_db)],user=Depends(verify_token)):
     new_blog = models.Blog(
         title = blog.title,
         content = blog.content
@@ -53,9 +62,9 @@ def get_blog(blog_id:int,db:Annotated[Session,Depends(get_db)]):
         )
     return blog
 
-#update blog API 
+#update blog API (protected)
 @app.put('/blogs/{blog_id}',response_model=schemas.BlogResponse)
-def update_blog(blog_id:int,blog:schemas.BlogCreate,db:Annotated[Session,Depends(get_db)]):
+def update_blog(blog_id:int,blog:schemas.BlogCreate,db:Annotated[Session,Depends(get_db)],user = Depends(verify_token)):
     existing_blog = db.query(models.Blog).filter(models.Blog.id == blog_id).first()
     if not existing_blog:
         raise HTTPException(
@@ -69,9 +78,9 @@ def update_blog(blog_id:int,blog:schemas.BlogCreate,db:Annotated[Session,Depends
     
     return existing_blog
 
-#delete blog api
+#delete blog api (protected)
 @app.delete('/blogs/{blog_id}')
-def delete_blog(blog_id:int,db:Annotated[Session,Depends(get_db)]):
+def delete_blog(blog_id:int,db:Annotated[Session,Depends(get_db)],user=Depends(verify_token)):
     blog = db.query(models.Blog).filter(models.Blog.id == blog_id)
     if not blog:
         raise HTTPException(
